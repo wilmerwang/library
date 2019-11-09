@@ -27,7 +27,9 @@ def spotPositionObtain(inxml):
     :return: [spot location and spot size]
     '''
     root = ET.parse(inxml).getroot()
-    annotations = root.findall('./Annotations/Annotation[@PartOfGroup="Annotation Group 0"]')
+    annotations_0 = root.findall('./Annotations/Annotation[@PartOfGroup="Annotation Group 0"]')
+    annotations_1 = root.findall('./Annotations/Annotation[@PartOfGroup="None"]')
+    annotations = annotations_0 + annotations_1
 
     spots = []
     for annotation in annotations:
@@ -77,7 +79,7 @@ def run(args):
         #
         if os.path.split(wsi_path)[-1].split('.')[0] != os.path.split(xml_path)[-1].split('.')[0]\
                 != os.path.split(spots_position_path)[-1].split('.')[0]:
-            logging.INFO("wsi file not match xml file, please check it.")
+            logging.info("wsi file not match xml file, please check it.")
         else:
             slide = openslide.OpenSlide(wsi_path)
             spots = spotPositionObtain(xml_path)
@@ -89,16 +91,15 @@ def run(args):
                 os.makedirs(file_dir)
 
             if len(spot_output_names) != len(spots):
-                logging.INFO("spot names not match xml annotations, please change the xml file.")
+                logging.info("len(spot_output): {} not match xml annotations: {}, please change the xml file.".format(
+                    len(spot_output_names), len(spots)))
             else:
                 for i, spot in enumerate(spots):
-                    img_RGBA = slide.read_region(spot[0], 0, spot[1])
-                    img_RGB = img_RGBA.convert('RGB')
-
-                    if not spot_output_names[i].startswith('#N'):
-                        file_path = os.path.join(file_dir, spot_output_names[i].strip('\n')+'.png')
-                        if not os.path.exists(file_path):
-                            img_RGB.save(file_path) # need if in order to resaved
+                    file_path = os.path.join(file_dir, spot_output_names[i].strip('\n') + '.png')
+                    if not os.path.exists(file_path) and not spot_output_names[i].startswith('#N'):
+                        img_RGBA = slide.read_region(spot[0], 0, spot[1])
+                        img_RGB = img_RGBA.convert('RGB')
+                        img_RGB.save(file_path) # need if in order to resaved
 
 
 def main():
@@ -109,4 +110,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
